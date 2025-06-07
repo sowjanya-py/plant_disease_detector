@@ -1,5 +1,7 @@
 streamlit
-inference-sdk
+inference_sdk
 Pillow
 opencv-python-headless==4.7.0.72
-
+numpy
+supervision
+requests
