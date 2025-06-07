@@ -1,4 +1,5 @@
 streamlit
 inference-sdk
 Pillow
-opencv-python
+opencv-python-headless
+
