@@ -2,7 +2,8 @@ streamlit==1.35.0
 rich<14,>=10.14.0
 Pillow==10.0.1
 opencv-python-headless
-inference==0.50.4
+
+
 markdown-it-py==3.0.0
 mdurl==0.1.2
 pygments==2.19.1
