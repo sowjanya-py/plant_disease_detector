@@ -27,7 +27,7 @@ DISEASE_INFO = {
 # Initialize Roboflow client securely
 client = InferenceHTTPClient(
     api_url="https://serverless.roboflow.com",
-    api_key=st.secrets["ot6Qzlm1LTQoS80sKB7v"]
+    api_key = st.secrets["general"]["api_key"]
 )
 
 # Page setup
