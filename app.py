@@ -27,7 +27,7 @@ DISEASE_INFO = {
 # Initialize Roboflow client securely
 client = InferenceHTTPClient(
     api_url="https://serverless.roboflow.com",
-    api_key = st.secrets["general"]["api_key"]
+    api_key=st.secrets["general"]["api_key"]
 )
 
 # Page setup
@@ -75,64 +75,70 @@ st.markdown("""
 
 # Header
 st.markdown('<h1 class="title">🌿 Plant Disease Detection App</h1>', unsafe_allow_html=True)
-st.markdown('<h2 class="subtitle">Upload a plant leaf image to detect diseases.</h2>', unsafe_allow_html=True)
+st.markdown('<h2 class="subtitle">Upload one or more plant leaf images to detect diseases.</h2>', unsafe_allow_html=True)
 
 # File upload
-uploaded_file = st.file_uploader("📤 Upload a leaf image (jpg, jpeg, png)", type=["jpg", "jpeg", "png"])
+uploaded_files = st.file_uploader("📄 Upload one or more leaf images (jpg, jpeg, png)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
-if uploaded_file:
-    try:
-        image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="📷 Uploaded Image", use_column_width=True)
+if uploaded_files:
+    for uploaded_file in uploaded_files:
+        st.markdown(f"### Processing: {uploaded_file.name}")
+        try:
+            image = Image.open(uploaded_file).convert("RGB")
+            st.image(image, caption="📷 Uploaded Image", use_column_width=True)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
-            image.save(tmp_file.name)
-            temp_image_path = tmp_file.name
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                image.save(tmp_file.name)
+                temp_image_path = tmp_file.name
 
-        with st.spinner("🔍 Detecting diseases..."):
-            result = client.run_workflow(
-                workspace_name="oreo-kfw1b",
-                workflow_id="custom-workflow",
-                images={"image": temp_image_path},
-                use_cache=True
-            )
-
-        if result and "predictions" in result[0] and "predictions" in result[0]["predictions"]:
-            detections = result[0]["predictions"]["predictions"]
-            draw = ImageDraw.Draw(image)
-            detected_diseases = set()
-
-            for pred in detections:
-                x, y, w, h = pred["x"], pred["y"], pred["width"], pred["height"]
-                class_id = str(pred.get("class_id", ""))
-                confidence = pred.get("confidence", 0)
-                disease_name = DISEASE_INFO.get(class_id, {}).get("name", "Unknown")
-                disease_desc = DISEASE_INFO.get(class_id, {}).get("description", "No description available.")
-                detected_diseases.add((disease_name, disease_desc, confidence))
-
-                label = f"{disease_name} ({confidence*100:.1f}%)"
-                draw.rectangle(
-                    [(x - w/2, y - h/2), (x + w/2, y + h/2)],
-                    outline="#8B0000",
-                    width=4
+            with st.spinner("🔍 Detecting diseases..."):
+                result = client.run_workflow(
+                    workspace_name="oreo-kfw1b",
+                    workflow_id="custom-workflow",
+                    images={"image": temp_image_path},
+                    use_cache=True
                 )
-                draw.text((x - w/2, y - h/2 - 20), label, fill="#8B0000")
 
-            st.image(image, caption="🩺 Detected Disease(s)", use_column_width=True)
-            st.markdown("### Disease Information & Care Advice:")
+            if result and "predictions" in result[0] and "predictions" in result[0]["predictions"]:
+                detections = result[0]["predictions"]["predictions"]
+                if detections:
+                    draw = ImageDraw.Draw(image)
+                    detected_diseases = set()
 
-            for name, desc, conf in detected_diseases:
-                st.markdown(f'<div class="disease-info"><b>{name}</b> - Confidence: {conf*100:.1f}%<br>{desc}</div>', unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ No disease detected. Try a clearer image or healthy leaf.")
+                    for pred in detections:
+                        x, y, w, h = pred["x"], pred["y"], pred["width"], pred["height"]
+                        class_id = str(pred.get("class_id", ""))
+                        confidence = pred.get("confidence", 0)
+                        disease_name = DISEASE_INFO.get(class_id, {}).get("name", "Unknown")
+                        disease_desc = DISEASE_INFO.get(class_id, {}).get("description", "No description available.")
+                        detected_diseases.add((disease_name, disease_desc, confidence))
 
-        os.remove(temp_image_path)
+                        label = f"{disease_name} ({confidence*100:.1f}%)"
+                        draw.rectangle(
+                            [(x - w/2, y - h/2), (x + w/2, y + h/2)],
+                            outline="#8B0000",
+                            width=4
+                        )
+                        draw.text((x - w/2, y - h/2 - 20), label, fill="#8B0000")
 
-    except UnidentifiedImageError:
-        st.error("❌ The uploaded file is not a valid image.")
-    except Exception as e:
-        st.error(f"❌ Error during inference: {e}")
+                    st.image(image, caption="🪧 Detected Disease(s)", use_column_width=True)
+                    st.markdown("### Disease Information & Care Advice:")
+
+                    for name, desc, conf in detected_diseases:
+                        st.markdown(f'<div class="disease-info"><b>{name}</b> - Confidence: {conf*100:.1f}%<br>{desc}</div>', unsafe_allow_html=True)
+                else:
+                    st.success("🌿 The leaf appears to be healthy. No disease detected.")
+                    st.image(image, caption="🌱 Healthy Leaf", use_column_width=True)
+            else:
+                st.warning("⚠️ Could not get a valid response. Please try again.")
+
+            os.remove(temp_image_path)
+
+        except UnidentifiedImageError:
+            st.error("❌ The uploaded file is not a valid image.")
+        except Exception as e:
+            st.error(f"❌ Error during inference: {e}")
 else:
-    st.info("Please upload a plant leaf image to get started.")
+    st.info("Please upload one or more plant leaf images to get started.")
 
 st.markdown('<div class="footer">Developed by Sowjanya Surada | Powered by Roboflow & Streamlit 🌱</div>', unsafe_allow_html=True)
